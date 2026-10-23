@@ -9,6 +9,7 @@ PIDF=/data/adb/charge-guard.pid
 DISABLE=$MODDIR/disable
 NODE=/sys/class/xm_power/charger/charger_thermal/wired_chg_curr
 TARGET=15600000            # 满速目标(µA)，驱动自会钳到可达值
+STEP=8000000               # 退让档(µA)：电池进 44-48°C 区间先降流，不硬放权
 BAT_HI=48000; BAT_LO=44000 # 电池温控墙(m°C)：越线放权 / 回落接管（对齐 ACC 50/45 略严）
 CHG_HI=58000; CHG_LO=52000 # charger_therm 温控墙（轻载基线实测 ~44°C）
 NTFY=https://ntfy.yibanna.dpdns.org/hermes-alert
@@ -48,7 +49,12 @@ while :; do
       ENGAGED=0
       alert "温控放权原生策略 电池$((BT/1000)).$((BT/100%10))°C charger$((CT/1000)).$((CT/100%10))°C"
     elif [ "$AWAKE" = 1 ]; then
-      echo "$TARGET" > "$NODE" 2>/dev/null
+      # 分档退让：<44°C 满速，44-48°C 降流档，≥48°C 上面已放权
+      if [ "$BT" -ge "$BAT_LO" ]; then
+        echo "$STEP" > "$NODE" 2>/dev/null
+      else
+        echo "$TARGET" > "$NODE" 2>/dev/null
+      fi
     fi
   else
     if [ "$BT" -le "$BAT_LO" ] && [ "$CT" -le "$CHG_LO" ]; then
