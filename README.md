@@ -45,8 +45,12 @@ HyperOS 亮屏时 `mi_thermald` 把充电电流强制压到 ~4A（实测 18W，�
 
 ## 安装
 
+**方式一（推荐）**：下载 [charge-guard-v1.1.zip](https://github.com/yibanna1111111/k100pm-charge-guard/releases/download/v1.1/charge-guard-v1.1.zip)，KernelSU / Magisk App 里「从本地安装」直接刷入，重启生效。
+
+**方式二（手动）**：
+
 ```sh
-# 复制模块目录到手机后：
+# 复制模块文件到手机后：
 su -c 'mkdir -p /data/adb/modules/charge-guard'
 su -c 'cp module.prop service.sh charge-guard.sh /data/adb/modules/charge-guard/'
 su -c 'chmod 755 /data/adb/modules/charge-guard/*.sh'
