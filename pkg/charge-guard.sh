@@ -9,9 +9,9 @@ PIDF=/data/adb/charge-guard.pid
 DISABLE=$MODDIR/disable
 NODE=/sys/class/xm_power/charger/charger_thermal/wired_chg_curr
 TARGET=15600000            # 满速目标(µA)，驱动自会钳到可达值
-STEP=8000000               # 退让档(µA)：电池进 44-48°C 区间先降流，不硬放权
-BAT_HI=48000; BAT_LO=44000 # 电池温控墙(m°C)：越线放权 / 回落接管（对齐 ACC 50/45 略严）
-CHG_HI=58000; CHG_LO=52000 # charger_therm 温控墙（轻载基线实测 ~44°C）
+STEP=11000000               # 退让档(µA)：v1.3 提激进
+BAT_HI=50000; BAT_LO=46000 # v1.3 满速线提到46°C，50°C放权(对齐ACC上限)
+CHG_HI=60000; CHG_LO=54000 # v1.3 charger墙放宽
 NTFY=https://ntfy.yibanna.dpdns.org/hermes-alert
 CURL=/data/data/com.termux/files/usr/bin/curl
 
