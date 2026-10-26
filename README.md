@@ -49,7 +49,7 @@ v1.4 daemon 每 1s **双闸同调**，按温度分三档：
 
 ## 安装
 
-**方式一（推荐）**：下载 [charge-guard-v1.3.zip](https://github.com/yibanna1111111/k100pm-charge-guard/releases/download/v1.3/charge-guard-v1.3.zip)，KernelSU / Magisk App 里「从本地安装」直接刷入，重启生效。
+**方式一（推荐）**：下载 [charge-guard-v1.5.zip](https://github.com/yibanna1111111/k100pm-charge-guard/releases/download/v1.5/charge-guard-v1.5.zip)，KernelSU / Magisk App 里「从本地安装」直接刷入，重启生效。
 
 **方式二（手动）**：
 
@@ -71,6 +71,8 @@ su -c 'touch /data/adb/modules/charge-guard/disable'  # 临时停用（daemon �
 
 ## 排障
 
+- **闸节点权限（v1.5 关键修复）**：驱动每次开机把 `wired_chg_curr` / `wired_ctrl_limit` 建成 0444 只读（root 直接写 EACCES）。daemon 启动即 `chmod 0666`，写入失败还会重新 chmod 重试。v1.4 及以前无此步骤，重启后首次进 FAST 会写失败退出（日志 `write failure, exit to native`）
+- **supervisor（v1.5 新增）**：`service.sh` 只拉起 `supervise.sh` 守护循环，daemon 异常死亡（含 SIGKILL）5 秒内自动复活；`disable` 文件两者同时退出
 - 日志：`/data/adb/charge-guard.log`（档位切换 + 10s 心跳：tier/温度/level/sic/actual）
 - daemon 状态：`kill -0 $(su -c 'cat /data/adb/charge-guard.pid')`
 - 温控区按 `type` 名解析（battery / batt_temp / charger_therm / quiet_therm / conn_therm*），zone 编号跨重启不保证稳定

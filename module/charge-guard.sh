@@ -10,6 +10,8 @@ LOG=$STATE/charge-guard.log
 PIDF=$STATE/charge-guard.pid
 LOCK=$STATE/charge-guard.lock
 NODE=$ROOT/sys/class/xm_power/charger/charger_thermal
+# Driver creates gates 0444 each boot; root must open the write bit before voting.
+chmod 0666 "$NODE/wired_chg_curr" "$NODE/wired_ctrl_limit" 2>/dev/null || true
 PS=$ROOT/sys/class/power_supply/battery
 INTERVAL=${CG_INTERVAL:-1}
 MAX_TICKS=${CG_TICKS:-0}
@@ -52,8 +54,8 @@ OWNED=0
 release() {
     [ "$OWNED" = 1 ] || return 0
     # A one-time conservative handoff; the running native service can replace it.
-    printf '2000000\n' > "$NODE/wired_chg_curr" 2>/dev/null
-    printf '12\n' > "$NODE/wired_ctrl_limit" 2>/dev/null
+    sys_w '2000000' "$NODE/wired_chg_curr" 2>/dev/null
+    sys_w '12' "$NODE/wired_ctrl_limit" 2>/dev/null
     OWNED=0
     log 'handoff conservative level=12 sic=2000000; native controls subsequent updates'
 }
@@ -74,13 +76,14 @@ for zone in "$ROOT"/sys/class/thermal/thermal_zone*; do
 done
 log "start v1.4 pid=$$ battery=$BATZ gauge=$FGZ charger=$CHGZ"
 COOLING=0; TICK=0; PREVIOUS=; TIER=YIELD; DWELL=0
+sys_w() { printf "$1\n" > "$2" 2>/dev/null && return 0; chmod 0666 "$2" 2>/dev/null; printf "$1\n" > "$2" 2>/dev/null; }
 apply_tier() {
     case "$1" in
-        FAST)  printf '15600000\n' > "$NODE/wired_chg_curr" 2>/dev/null || return 1
-               printf '0\n' > "$NODE/wired_ctrl_limit" 2>/dev/null || return 1
+        FAST)  sys_w '15600000' "$NODE/wired_chg_curr" || return 1
+               sys_w '0' "$NODE/wired_ctrl_limit" || return 1
                OWNED=1;;
-        BOOST) printf '6000000\n' > "$NODE/wired_chg_curr" 2>/dev/null || return 1
-               printf '6\n' > "$NODE/wired_ctrl_limit" 2>/dev/null || return 1
+        BOOST) sys_w '6000000' "$NODE/wired_chg_curr" || return 1
+               sys_w '6' "$NODE/wired_ctrl_limit" || return 1
                OWNED=1;;
         *)     release;;
     esac

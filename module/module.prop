@@ -1,7 +1,7 @@
 # charge-guard
 id=charge-guard
 name=Charge Guard (songyuan)
-version=1.4
-versionCode=5
+version=1.5
+versionCode=6
 author=yibanna
-description=亮屏充电提速守护：双闸同调（wired_ctrl_limit + wired_chg_curr），三档温控 FAST/BOOST/放权，越线自动回落原生。仅运行时 sysfs 写入，重启即恢复原生。
+description=亮屏充电提速守护：双闸同调（wired_ctrl_limit + wired_chg_curr），三档温控 FAST/BOOST/放权，越线自动回落原生。启动自动 chmod 闸节点（驱动开机建 0444），supervisor 兜底复活。仅运行时 sysfs 写入，重启即恢复原生。
