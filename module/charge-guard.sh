@@ -76,6 +76,18 @@ for zone in "$ROOT"/sys/class/thermal/thermal_zone*; do
 done
 log "start v1.4 pid=$$ battery=$BATZ gauge=$FGZ charger=$CHGZ"
 COOLING=0; TICK=0; PREVIOUS=; TIER=YIELD; DWELL=0
+read_sensors() {
+    GAUGE=$(read_value "$PS/temp")
+    case "$GAUGE" in ''|*[!0-9]*) GAUGE=0;; *)
+        if [ "${#GAUGE}" -le 4 ]; then GAUGE=$((GAUGE*100)); else GAUGE=0; fi;;
+    esac
+    B=$(max_temp "$(read_value "$BATZ/temp")" "$(read_value "$FGZ/temp")" "$GAUGE")
+    C=$(read_value "$CHGZ/temp")
+    BOARD=$(max_temp "$(read_value "$QUIETZ/temp")" "$(read_value "$ROOT/sys/class/thermal/thermal_message/board_sensor_temp")")
+    PORT=$(max_temp "$(read_value "$PORTZ/temp")" "$(read_value "$PORT2Z/temp")")
+    SOC=$(read_value "$PS/capacity")
+    ONLINE=$(read_value "$ROOT/sys/class/power_supply/usb/online")
+}
 sys_w() { printf "$1\n" > "$2" 2>/dev/null && return 0; chmod 0666 "$2" 2>/dev/null; printf "$1\n" > "$2" 2>/dev/null; }
 apply_tier() {
     case "$1" in
@@ -91,16 +103,13 @@ apply_tier() {
 }
 while :; do
     [ -f "$MODDIR/disable" ] && { log 'disable file, exit'; exit 0; }
-    GAUGE=$(read_value "$PS/temp")
-    case "$GAUGE" in ''|*[!0-9]*) GAUGE=0;; *)
-        if [ "${#GAUGE}" -le 4 ]; then GAUGE=$((GAUGE*100)); else GAUGE=0; fi;;
-    esac
-    B=$(max_temp "$(read_value "$BATZ/temp")" "$(read_value "$FGZ/temp")" "$GAUGE")
-    C=$(read_value "$CHGZ/temp")
-    BOARD=$(max_temp "$(read_value "$QUIETZ/temp")" "$(read_value "$ROOT/sys/class/thermal/thermal_message/board_sensor_temp")")
-    PORT=$(max_temp "$(read_value "$PORTZ/temp")" "$(read_value "$PORT2Z/temp")")
-    SOC=$(read_value "$PS/capacity")
-    ONLINE=$(read_value "$ROOT/sys/class/power_supply/usb/online")
+    read_sensors
+    BAD=0
+    for v in "$B" "$C" "$BOARD" "$PORT"; do
+        case "$v" in ''|*[!0-9]*) BAD=1;; *) [ "$v" -lt 1000 ] && BAD=1;; esac
+    done
+    # One retry before trusting a transient sysfs read glitch; persistent bad reads still fail closed.
+    if [ "$BAD" = 1 ]; then sleep 1; read_sensors; fi
     NEXT=$(cg_decide "$B" "$C" "$BOARD" "$PORT" "$SOC" "$ONLINE" "$COOLING" "$TIER" "$DWELL" "$SOC_GATE")
     apply_tier "$NEXT" || { log 'write failure, exit to native'; exit 1; }
     if [ "$NEXT" = "$TIER" ]; then DWELL=$((DWELL+1)); else DWELL=0; fi

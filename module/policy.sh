@@ -4,13 +4,13 @@
 # Hysteresis: entry gates are stricter than exit gates. $8 = current tier, $9 = ticks in tier.
 # These gates are engineering choices, not manufacturer ratings. JEITA/voltage taper stay native.
 cg_fast_entry() {
-    [ "$1" -lt 42000 ] && [ "$2" -lt 52000 ] && [ "$3" -lt 42000 ] && [ "$4" -lt 41000 ]
+    [ "$1" -lt 42000 ] && [ "$2" -lt 52000 ] && [ "$3" -lt 44000 ] && [ "$4" -lt 41000 ]
 }
 cg_fast_exit() {
-    [ "$1" -ge 43500 ] || [ "$2" -ge 55000 ] || [ "$3" -ge 43500 ] || [ "$4" -ge 42500 ]
+    [ "$1" -ge 43500 ] || [ "$2" -ge 55000 ] || [ "$3" -ge 45500 ] || [ "$4" -ge 42500 ]
 }
 cg_boost_ok() {
-    [ "$1" -lt 44500 ] && [ "$2" -lt 57000 ] && [ "$3" -lt 44000 ] && [ "$4" -lt 43000 ]
+    [ "$1" -lt 44500 ] && [ "$2" -lt 57000 ] && [ "$3" -lt 46000 ] && [ "$4" -lt 43000 ]
 }
 cg_decide() {
     # battery(max sensor), charger, board(max skin), connector, SOC, online, cooling, tier, dwell, soc_gate
@@ -29,9 +29,9 @@ cg_decide() {
     case "$8" in FAST|BOOST|YIELD) ;; *) echo 'YIELD'; return;; esac
     # After a yield, re-entry needs stricter temps than normal entry (hysteresis).
     if [ "$7" -eq 1 ]; then
-        if [ "$1" -lt 40000 ] && [ "$2" -lt 50000 ] && [ "$3" -lt 40000 ] && [ "$4" -lt 39000 ]; then
+        if [ "$1" -lt 40000 ] && [ "$2" -lt 50000 ] && [ "$3" -lt 42000 ] && [ "$4" -lt 39000 ]; then
             echo 'FAST'
-        elif [ "$1" -lt 42000 ] && [ "$2" -lt 55000 ] && [ "$3" -lt 42000 ] && [ "$4" -lt 41000 ]; then
+        elif [ "$1" -lt 42000 ] && [ "$2" -lt 55000 ] && [ "$3" -lt 44000 ] && [ "$4" -lt 41000 ]; then
             echo 'BOOST'
         else echo 'YIELD'
         fi

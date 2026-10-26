@@ -21,9 +21,11 @@ v1.4 daemon 每 1s **双闸同调**，按温度分三档：
 
 | 档 | wired_ctrl_limit | wired_chg_curr | 进入条件（全部满足） |
 |---|---|---|---|
-| FAST | 0 | 15600000 | 电池<42 charger<52 板温<42 接口<41 |
-| BOOST | 6 | 6000000 | 电池<44.5 charger<57 板温<44 接口<43 |
+| FAST | 0 | 15600000 | 电池<42 charger<52 板温<44 接口<41 |
+| BOOST | 6 | 6000000 | 电池<44.5 charger<57 板温<46 接口<43 |
 | YIELD | 放权原生 | 放权原生 | 其余（含传感器读数非法 = fail-closed） |
+
+（v1.6：板温闸 +2°C。板温传感器常态比电池高 2-3°C，旧闸在高电量亮屏时会被板温误卡 YIELD——电池才 40.7°C 也放权。）
 
 - 迟滞：FAST 退出线比进入线宽 1.5°C 且驻留 <10s 不降档；YIELD 后再进档需更严门槛。
 - SOC ≥90（`CG_SOC_GATE`）放权原生涓流，绝不强推恒压收尾电流。
@@ -49,7 +51,7 @@ v1.4 daemon 每 1s **双闸同调**，按温度分三档：
 
 ## 安装
 
-**方式一（推荐）**：下载 [charge-guard-v1.5.zip](https://github.com/yibanna1111111/k100pm-charge-guard/releases/download/v1.5/charge-guard-v1.5.zip)，KernelSU / Magisk App 里「从本地安装」直接刷入，重启生效。
+**方式一（推荐）**：下载 [charge-guard-v1.6.zip](https://github.com/yibanna1111111/k100pm-charge-guard/releases/download/v1.6/charge-guard-v1.6.zip)，KernelSU / Magisk App 里「从本地安装」直接刷入，重启生效。
 
 **方式二（手动）**：
 
@@ -73,6 +75,7 @@ su -c 'touch /data/adb/modules/charge-guard/disable'  # 临时停用（daemon �
 
 - **闸节点权限（v1.5 关键修复）**：驱动每次开机把 `wired_chg_curr` / `wired_ctrl_limit` 建成 0444 只读（root 直接写 EACCES）。daemon 启动即 `chmod 0666`，写入失败还会重新 chmod 重试。v1.4 及以前无此步骤，重启后首次进 FAST 会写失败退出（日志 `write failure, exit to native`）
 - **supervisor（v1.5 新增）**：`service.sh` 只拉起 `supervise.sh` 守护循环，daemon 异常死亡（含 SIGKILL）5 秒内自动复活；`disable` 文件两者同时退出
+- **传感器读数重试（v1.6）**：温度节点单次读失败先等 1s 重读再判，避免瞬断误触发 YIELD 放权导致 level 翻转、PD 重协商功率毛刺；持续非法仍 fail-closed
 - 日志：`/data/adb/charge-guard.log`（档位切换 + 10s 心跳：tier/温度/level/sic/actual）
 - daemon 状态：`kill -0 $(su -c 'cat /data/adb/charge-guard.pid')`
 - 温控区按 `type` 名解析（battery / batt_temp / charger_therm / quiet_therm / conn_therm*），zone 编号跨重启不保证稳定
